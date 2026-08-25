@@ -1,0 +1,12 @@
+# OS
+.DS_Store
+
+# Editors
+.vscode/
+.idea/
+*.swp
+
+# Local/personal notes — anything private stays out of git
+*personal*
+*private*
+notes-local/

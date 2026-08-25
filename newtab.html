@@ -1,0 +1,85 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>New Tab</title>
+<link rel="stylesheet" href="newtab.css">
+</head>
+<body>
+<div id="app">
+  <aside id="habits-col" aria-label="Habits and notes">
+    <div id="habits-sec">
+      <h2 class="col-head">Habits</h2>
+      <div id="habits"></div>
+      <input id="new-habit" class="ghost-add" placeholder="+ New habit" autocomplete="off"
+             aria-label="New habit name">
+    </div>
+    <div id="tdt-divider" tabindex="0" role="separator" aria-orientation="horizontal"
+         aria-label="Resize To Do Today panel. Up and down arrow keys to adjust."></div>
+    <div id="tdt-sec">
+      <h2 class="col-head">To Do Today</h2>
+      <div id="tdt"></div>
+      <input id="new-tdt" class="check-add-input" placeholder="Add to today…" autocomplete="off"
+             aria-label="New to-do today item">
+    </div>
+    <div id="notes-divider" tabindex="0" role="separator" aria-orientation="horizontal"
+         aria-label="Resize notes panel. Up and down arrow keys to adjust."></div>
+    <div id="notes-sec">
+      <h2 class="col-head">Notes</h2>
+      <div id="notes"></div>
+      <input id="new-note" class="ghost-add" placeholder="+ New note" autocomplete="off"
+             aria-label="New note">
+    </div>
+  </aside>
+
+  <div id="divider" tabindex="0" role="separator" aria-orientation="vertical"
+       aria-label="Resize columns. Left and right arrow keys to adjust."></div>
+
+  <main id="todos-col" aria-label="Tasks">
+    <header id="page-head">
+      <h1 id="greeting"></h1>
+      <div class="head-actions">
+        <button id="theme-btn" class="head-btn" title="Toggle theme">◐</button>
+        <button id="log-btn" class="head-btn" title="What got done, day by day">log</button>
+        <button id="export-btn" class="head-btn" title="Export backup JSON">export</button>
+        <button id="import-btn" class="head-btn" title="Import backup JSON">import</button>
+        <input type="file" id="import-file" accept=".json,application/json" hidden>
+      </div>
+    </header>
+
+    <div class="add-item">
+      <input id="new-title" placeholder="New task…" autocomplete="off" aria-label="New task title">
+      <input type="date" id="new-due" aria-label="Due date (optional)">
+    </div>
+
+    <div id="items"></div>
+
+    <div id="done-sec" hidden>
+      <button id="done-toggle" aria-expanded="false" aria-controls="done-list">
+        ▸ Done (<span id="done-count">0</span>)
+      </button>
+      <div id="done-list" hidden></div>
+    </div>
+
+    <div id="archive-sec">
+      <button id="arch-toggle" aria-expanded="false" aria-controls="arch-list">
+        ▸ Archive (<span id="arch-count">0</span>)
+      </button>
+      <div id="arch-list" hidden></div>
+    </div>
+
+    <div id="log-sec">
+      <button id="log-toggle" aria-expanded="false" aria-controls="log-list">▸ Done Log</button>
+      <div id="log-list" hidden></div>
+    </div>
+  </main>
+</div>
+<div id="palette" hidden></div>
+<div id="daypick" hidden>
+  <button data-act="day-today">Today</button>
+  <button data-act="day-yest">Yesterday</button>
+</div>
+<script src="newtab.js"></script>
+</body>
+</html>
