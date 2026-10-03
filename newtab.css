@@ -666,6 +666,7 @@ input, textarea { font: inherit; color: inherit; }
 .log-item { font-size: var(--fs-sm); color: var(--text-faint); padding-left: var(--s2); }
 .log-item.done { color: var(--text-dim); }
 .log-item.done::first-letter { color: var(--success); }
+.log-ctx { font-size: var(--fs-xs); opacity: .75; }
 
 /* drag & drop reorder */
 .grip {

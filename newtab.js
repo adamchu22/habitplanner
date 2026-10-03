@@ -160,15 +160,32 @@ function tdtLabel(t) {
   const src = t.ref ? (findAll(t.ref) || findCheck(t.ref)) : null;
   return t.ref ? (src ? (src.title || src.text) || '(untitled)' : '(removed)') : t.text;
 }
-function logToday(label, done) {
-  let day = state.tdtLog.find(d => d.date === today());
-  if (!day) { day = { date: today(), items: [] }; state.tdtLog.unshift(day); }
-  day.items.push({ label, done });
+/* "Task › Sub-task" context for a checklist item */
+function checkContext(st, cid) {
+  for (const it of st.items.concat(st.archive || [])) {
+    for (const owner of [it, ...(it.subitems || [])]) {
+      if (owner.checklist.some(c => c.id === cid)) {
+        const t = it.title || '(untitled)';
+        return owner.id === it.id ? t : `${t} › ${owner.title || '(untitled)'}`;
+      }
+    }
+  }
+  return '';
+}
+function logToday(st, label, done, context) {
+  let day = st.tdtLog.find(d => d.date === today());
+  if (!day) { day = { date: today(), items: [] }; st.tdtLog.unshift(day); }
+  day.items.push({ label, done, context });
 }
 /* done = cleared off today's list, recorded in the log */
 function completeTdt(t) {
   state.tdt = state.tdt.filter(x => x.id !== t.id);
-  logToday(tdtLabel(t), true);
+  logToday(state, tdtLabel(t), true, t.ref ? checkContext(state, t.ref) : '');
+  /* linked checklist item is now logged — clear it so the boot sweep doesn't re-log it */
+  if (t.ref) {
+    const owner = ownerOfCheck(t.ref);
+    if (owner) owner.checklist = owner.checklist.filter(c => c.id !== t.ref);
+  }
 }
 function syncTdt(ref, v) {
   for (const t of state.tdt) if (t.ref === ref) {
@@ -181,7 +198,7 @@ function rolloverTdt() {
   if (state.tdtDate && state.tdtDate !== today() && state.tdt.length) {
     state.tdtLog.unshift({
       date: state.tdtDate,
-      items: state.tdt.map(t => ({ label: tdtLabel(t), done: !!t.done }))
+      items: state.tdt.map(t => ({ label: tdtLabel(t), done: !!t.done, context: t.ref ? checkContext(state, t.ref) : '' }))
     });
     state.tdt = [];
   }
@@ -189,6 +206,24 @@ function rolloverTdt() {
   save();
 }
 
+/* boot: completed checklist items → Done Log, cleared from the task */
+function sweepDoneChecks(st) {
+  for (const it of st.items) {
+    for (const owner of [it, ...(it.subitems || [])]) {
+      const done = owner.checklist.filter(c => c.done);
+      if (!done.length) continue;
+      for (const c of done) logToday(st, c.text, true, checkContext(st, c.id));
+      owner.checklist = owner.checklist.filter(c => !c.done);
+    }
+  }
+}
+/* boot: drop completed log entries older than 30 days (ISO dates compare lexically) */
+function pruneLog(st) {
+  const cutoff = shiftDate(today(), -30);
+  st.tdtLog = st.tdtLog
+    .map(day => ({ ...day, items: day.items.filter(i => !i.done || day.date >= cutoff) }))
+    .filter(day => day.items.length);
+}
 function tdtHTML(t) {
   return `<div class="tdt-row${t.done ? ' done' : ''}">
     <input type="checkbox" class="chk chk-sm" data-act="tdt-done" data-id="${t.id}"
@@ -311,7 +346,7 @@ function renderLog() {
   el.innerHTML = state.tdtLog.length ? state.tdtLog.map(day => `
     <div class="log-day">
       <h3 class="log-date">${esc(day.date)}</h3>
-      ${day.items.map(i => `<div class="log-item${i.done ? ' done' : ''}">${i.done ? '✓' : '·'} ${esc(i.label)}</div>`).join('')}
+      ${day.items.map(i => `<div class="log-item${i.done ? ' done' : ''}">${i.done ? '✓' : '·'} ${esc(i.label)}${i.context ? ` <span class="log-ctx">${esc(i.context)}</span>` : ''}</div>`).join('')}
     </div>`).join('')
     : '<p class="empty">Finished days will appear here.</p>';
 }
@@ -326,7 +361,7 @@ function render() {
     ? active.map(itemHTML).join('')
     : `<p class="empty">${doneItems.length ? 'All clear.' : 'No tasks. Add your first above.'}</p>`;
   const doneSec = $('#done-sec'), doneCount = $('#done-count'), doneList = $('#done-list');
-  if (doneSec) doneSec.hidden = !doneItems.length;
+  if (doneSec) doneSec.hidden = !doneItems.length && !state.tdtLog.length;
   if (doneCount) doneCount.textContent = doneItems.length;
   if (doneList) doneList.innerHTML = doneItems.map(it => `
     <div class="task card done-card">
@@ -619,6 +654,8 @@ $('#import-file').addEventListener('change', async e => {
   e.target.value = '';
 });
 $('#log-btn')?.addEventListener('click', () => {
+  const sec = $('#done-sec');
+  if (sec.hidden) sec.hidden = false;
   if ($('#log-list').hidden) $('#log-toggle').click();
   $('#log-sec').scrollIntoView({ behavior: 'smooth', block: 'nearest' });
 });
@@ -804,6 +841,9 @@ function initDnD() {
 async function boot() {
   await load();
   rolloverTdt();
+  sweepDoneChecks(state);
+  pruneLog(state);
+  save();
   initUI();
   buildPalette();
   initDivider();
@@ -822,5 +862,5 @@ if (typeof chrome !== 'undefined' && chrome.storage?.local && typeof document !=
 
 // node test export
 if (typeof module !== 'undefined') {
-  module.exports = { dstr, today, shiftDate, lastNDays, currentStreak, bestStreak, success14, progressPct, moveIn, parseTaskImport };
+  module.exports = { dstr, today, shiftDate, lastNDays, currentStreak, bestStreak, success14, progressPct, moveIn, parseTaskImport, sweepDoneChecks, pruneLog };
 }
